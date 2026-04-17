@@ -1,0 +1,32 @@
+# Stage 1: Dependencies
+FROM python:3.11-slim AS deps
+WORKDIR /install
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2: Runtime
+FROM python:3.11-slim AS runtime
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python dependencies
+COPY --from=deps /install /usr/local
+
+# Copy application code
+COPY app/ app/
+COPY alembic/ alembic/
+COPY templates/ templates/
+COPY alembic.ini .
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash app
+RUN chown -R app:app /app
+USER app
+
+# Default to all queues, override with docker-compose command
+CMD ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]

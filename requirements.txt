@@ -1,0 +1,49 @@
+# Core Backend
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Data Layer
+sqlalchemy==2.0.23
+alembic==1.13.1
+asyncpg==0.29.0
+
+# Caching & Queuing
+redis>=4.5.2,<5.0.0
+
+# Async Tasks
+celery==5.3.4
+celery[redis]==5.3.4
+flower==2.0.1
+
+# Channel Providers
+aiosmtplib==3.0.1
+httpx==0.25.2
+twilio==8.10.0
+
+# Templates
+jinja2==3.1.2
+
+# Utilities
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dateutil==2.8.2
+pytz==2023.3
+uuid7==0.1.0
+structlog==23.2.0
+
+# Development Tools
+pytest==7.4.3
+pytest-asyncio==0.23.2
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==20.1.0
+black==23.11.0
+ruff==0.1.6
+mypy==1.7.1
+pre-commit==3.6.0
+
+# Monitoring
+prometheus-client==0.19.0

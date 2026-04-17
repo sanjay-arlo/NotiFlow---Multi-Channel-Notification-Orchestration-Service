@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h3 style="color: #0c5460; margin-top: 0;">✅ Transaction</h3>
+</div>
+
+<div style="background: #f8f9fa; border: 1px solid #dee2e6; padding: 30px; border-radius: 8px;">
+    {{ body | safe }}
+    
+    {% if transaction_details %}
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+        <h4>Transaction Details:</h4>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+            {% for key, value in transaction_details.items() %}
+            <tr>
+                <td style="padding: 8px; border: 1px solid #dee2e6; font-weight: bold; background: #f8f9fa;">
+                    {{ key }}
+                </td>
+                <td style="padding: 8px; border: 1px solid #dee2e6;">
+                    {{ value }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% if action_url %}
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ action_url }}" style="background: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">
+        {{ action_text or 'View Transaction' }}
+    </a>
+    {% if secondary_url %}
+    <a href="{{ secondary_url }}" style="background: #6c757d; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-left: 10px;">
+        {{ secondary_text or 'Dismiss' }}
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if footer_note %}
+<div style="text-align: center; margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+    <small style="color: #6c757d;">{{ footer_note }}</small>
+</div>
+{% endif %}
+{% endblock %}

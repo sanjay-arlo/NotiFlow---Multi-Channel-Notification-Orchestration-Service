@@ -1,0 +1,215 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: notiflow
+      POSTGRES_USER: notiflow
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-4539}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notiflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Critical queue - single worker, highest priority
+  worker-critical:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --queue=critical
+      --concurrency=2
+      --loglevel=warning
+      --hostname=critical@%h
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Email workers
+  worker-email:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --queue=email
+      --concurrency=4
+      --loglevel=info
+      --hostname=email@%h
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # SMS workers
+  worker-sms:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --queue=sms,high
+      --concurrency=2
+      --loglevel=info
+      --hostname=sms@%h
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Webhook workers
+  worker-webhook:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --queue=webhook
+      --concurrency=4
+      --loglevel=info
+      --hostname=webhook@%h
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Default/fallback workers
+  worker-default:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app worker
+      --queue=default,low
+      --concurrency=2
+      --loglevel=info
+      --hostname=default@%h
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Beat scheduler for periodic tasks
+  beat:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app beat
+      --loglevel=info
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-change-me-to-random-string}
+      - DB_PASSWORD=${DB_PASSWORD:-4539}
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Flower - Celery monitoring UI
+  flower:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    command: >
+      celery -A app.workers.celery_app flower
+      --port=5555
+      --url-prefix=flower
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
