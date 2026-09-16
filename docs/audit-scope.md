@@ -1,1 +1,0 @@
-Audit scope: documentation consistency, secret handling, prototype claims, repository hygiene and reproducibility.
