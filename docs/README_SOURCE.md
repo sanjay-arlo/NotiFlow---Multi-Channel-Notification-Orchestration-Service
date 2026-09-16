@@ -1,1 +1,0 @@
-README.md is the canonical source for installation and project-scope guidance.
