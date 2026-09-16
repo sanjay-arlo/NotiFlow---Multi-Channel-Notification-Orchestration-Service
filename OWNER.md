@@ -1,1 +1,0 @@
-Primary maintainer: @sanjay-arlo
