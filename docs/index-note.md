@@ -1,0 +1,1 @@
+The canonical project documentation is README.md. Keep setup, testing and security instructions there in sync with implementation.
